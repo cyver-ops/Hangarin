@@ -1,0 +1,313 @@
+{% load i18n %}
+{% load socialaccount %}
+{% load static %}
+{% load pwa %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Confirm Sign In</title>
+    {% progressive_web_app_meta %}
+    <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <style>
+        :root {
+            --bg-dark:     #0f172a; 
+            --accent:      #38bdf8; 
+            --accent-hover:#0ea5e9;
+            --text-main:   #f8fafc; 
+            --text-muted:  #94a3b8; 
+            --panel-glass: rgba(255, 255, 255, 0.06);
+            --border-glass: rgba(255, 255, 255, 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.85)), url('{% static "img/PSU-bg.jpg" %}');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            overflow-y-auto;
+        }
+
+        /* Premium Glassmorphism Card Shell */
+        .confirm-card {
+            position: relative;
+            z-index: 1;
+            background: var(--panel-glass);
+            backdrop-filter: blur(16px) saturate(120%);
+            -webkit-backdrop-filter: blur(16px) saturate(120%);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            padding: 40px 32px;
+            width: 100%;
+            max-width: 430px;
+            text-align: center;
+            animation: popIn .3s cubic-bezier(.34,1.3,.64,1);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(.94) translateY(12px); opacity: 0; }
+            to   { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        /* Ambient Glow - FIXED: added pointer-events and explicit index */
+        .logo-glow {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%);
+            z-index: 0;
+            pointer-events: none; /* Papayagan na ang click na dumaas sa likod */
+        }
+
+        /* Main Profile/Logo Wrapper */
+        .logo-wrap {
+            position: relative;
+            z-index: 2;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            margin: 0 auto 18px;
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.15);
+        }
+
+        .logo-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Branding Micro-badge */
+        .app-chip {
+            position: relative;
+            z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+            color: var(--accent);
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .8px;
+            text-transform: uppercase;
+            padding: 4px 14px;
+            border-radius: 999px;
+            margin-bottom: 20px;
+        }
+        .app-chip span { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+        h4 {
+            position: relative;
+            z-index: 2;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            letter-spacing: -.4px;
+        }
+
+        .sub {
+            position: relative;
+            z-index: 2;
+            font-size: .9rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+        .sub strong { color: var(--accent); font-weight: 600; }
+
+        /* Minimal Structural Divider */
+        .divider {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            color: var(--text-muted);
+            font-size: .7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.6;
+        }
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Form Structure Layering */
+        form {
+            position: relative;
+            z-index: 5;
+        }
+
+        /* Primary Action (OAuth Button Match) */
+        .btn-google {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 14px 20px;
+            background: var(--accent);
+            color: #020617; 
+            border: none;
+            border-radius: 14px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .95rem;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 20px rgba(56, 189, 248, 0.2);
+            margin-bottom: 14px;
+        }
+        .btn-google:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(56, 189, 248, 0.35);
+        }
+        .btn-google:active { transform: translateY(0); }
+
+        .google-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            background: radial-gradient(transparent 25%),
+                        conic-gradient(#ea4335 0 25%, #fbbc05 25% 50%, #34a853 50% 75%, #4285f4 75% 100%);
+            box-shadow: inset 0 0 0 2.5px rgba(255,255,255,.95);
+            flex: 0 0 auto;
+        }
+        .google-mark::after {
+            content: 'G';
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            font-weight: 800;
+            line-height: 1;
+            color: #fff;
+            transform: translateY(-0.5px);
+        }
+
+        /* Clean Back/Cancel Action */
+        .btn-cancel {
+            position: relative;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 13px 20px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-main);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #fff;
+        }
+
+        /* Security Infrastructure Microcopy */
+        .security-note {
+            position: relative;
+            z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 28px;
+            font-size: .72rem;
+            color: var(--text-muted);
+            letter-spacing: 0.3px;
+        }
+        .security-note i { color: var(--accent); font-size: .75rem; opacity: 0.8; }
+
+        /* Mobile Viewport Adaptation */
+        @media (max-width: 480px) {
+            .confirm-card {
+                padding: 36px 24px;
+                border-radius: 20px;
+            }
+            h4 { font-size: 1.4rem; }
+            .sub { margin-bottom: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="confirm-card">
+        <div class="logo-glow"></div>
+
+        <div class="logo-wrap">
+            <img src="{% static 'img/logo.png' %}" alt="Hangarin Logo">
+        </div>
+
+        <div class="app-chip">
+            <span></span> Hangarin
+        </div>
+
+        <h4>Confirm Sign In</h4>
+        <p class="sub">
+            You're signing in using your<br>
+            <strong>{{ provider.name }}</strong> account.
+        </p>
+
+        <div class="divider">secure validation</div>
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn-google">
+                {% if provider.id == 'google' %}
+                    <span class="google-mark" aria-hidden="true"></span>
+                {% else %}
+                    <i class="fab fa-{{ provider.id }}"></i>
+                {% endif %}
+                <span>Continue with {{ provider.name }}</span>
+            </button>
+        </form>
+
+        <a href="{% url 'account_login' %}" class="btn-cancel">
+            <i class="fas fa-arrow-left" style="font-size:.8rem; opacity: 0.7;"></i>
+            <span>Cancel, go back</span>
+        </a>
+
+        <div class="security-note">
+            <i class="fas fa-shield-alt"></i>
+            <span>Secured via django-allauth Gateway</span>
+        </div>
+    </div>
+
+</body>
+</html>

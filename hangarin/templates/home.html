@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="container-fluid">
+        <h4 class="page-title text-white">Hangarin Dashboard</h4>
+
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card card-stats card-warning">
+                    <div class="card-body position-relative">
+                        <a href="{% url 'task-add' %}"
+                           class="position-absolute"
+                           style="top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.96); color: #065f46; font-size: 22px; font-weight: 800; line-height: 1; text-decoration: none; z-index: 5; box-shadow: 0 6px 14px rgba(0,0,0,.2); border: 1px solid rgba(6,95,70,.2); pointer-events: auto;"
+                           title="Add Task"
+                           aria-label="Add Task">
+                             +
+                        </a>
+                        <div class="row">
+                            <div class="col-5">
+                                <div class="icon-big text-center">
+                                    <i class="la la-users"></i>
+                                </div>
+                            </div>
+                            <div class="col-7 d-flex align-items-center">
+                                <div class="numbers">
+                                    <p class="card-category">Total Tasks</p>
+                                    <h4 class="card-title">{{ total_tasks }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-stats card-success">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-5">
+                                <div class="icon-big text-center">
+                                    <i class="la la-bar-chart"></i>
+                                </div>
+                            </div>
+                            <div class="col-7 d-flex align-items-center">
+                                <div class="numbers">
+                                    <p class="card-category">Pending</p>
+                                    <h4 class="card-title">{{ pending_tasks }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-stats card-danger">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-5">
+                                <div class="icon-big text-center">
+                                    <i class="la la-newspaper-o"></i>
+                                </div>
+                            </div>
+                            <div class="col-7 d-flex align-items-center">
+                                <div class="numbers">
+                                    <p class="card-category">In Progress</p>
+                                    <h4 class="card-title">{{ in_progress_tasks }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-stats card-primary">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-5">
+                                <div class="icon-big text-center">
+                                    <i class="la la-check-circle"></i>
+                                </div>
+                            </div>
+                            <div class="col-7 d-flex align-items-center">
+                                <div class="numbers">
+                                    <p class="card-category">Completed</p>
+                                    <h4 class="card-title">{{ completed_tasks }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Recent Tasks</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Title</th>
+                                        <th>Status</th>
+                                        <th>Priority</th>
+                                        <th>Category</th>
+                                        <th>Deadline</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for task in recent_tasks %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ task.title }}</td>
+                                        <td>{{ task.status }}</td>
+                                        <td>{{ task.priority.name }}</td>
+                                        <td>{{ task.category.name }}</td>
+                                        <td>{{ task.deadline|date:"M d, Y h:i A" }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">No tasks yet.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Entity Counts</div>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <a href="{% url 'subtask-list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0 style-link">
+                                <span class="text-white font-weight-bold">Subtasks</span>
+                                <span class="badge badge-primary badge-pill">{{ total_subtasks }}</span>
+                            </a>
+                            <a href="{% url 'note-list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0 style-link">
+                                <span class="text-white font-weight-bold">Notes</span>
+                                <span class="badge badge-success badge-pill">{{ total_notes }}</span>
+                            </a>
+                            <a href="{% url 'priority-list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0 style-link">
+                                <span class="text-white font-weight-bold">Priorities</span>
+                                <span class="badge badge-danger badge-pill">{{ total_priorities }}</span>
+                            </a>
+                            <a href="{% url 'category-list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0 style-link">
+                                <span class="text-white font-weight-bold">Categories</span>
+                                <span class="badge badge-info badge-pill">{{ total_categories }}</span>
+                            </a>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .style-link {
+        text-decoration: none !important;
+        background: transparent !important;
+        border-bottom: 1px solid rgba(0,0,0,0.05) !important;
+    }
+    .style-link:hover span.text-dark {
+        color: #1d71b8 !important; /* Magkukulay asul ng konti kapag hino-hover */
+    }
+</style>
+{% endblock %}

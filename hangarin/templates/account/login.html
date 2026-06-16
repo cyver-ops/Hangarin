@@ -1,0 +1,384 @@
+{% load socialaccount %}
+{% load static %}
+{% load pwa %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Hangarin - Authentication</title>
+    {% progressive_web_app_meta %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primaryDark: '#0f172a',  /* Deep slate/navy dark */
+                        primary: '#1e293b',      /* Midnight slate core */
+                        primaryLight: '#334155', /* Soft slate highlight */
+                        accentColor: '#38bdf8',  /* Vivid sky blue for focus/links */
+                        accentHover: '#0ea5e9'
+                    },
+                },
+            },
+        };
+    </script>
+    <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8)), url('{% static "img/PSU-bg.jpg" %}');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        /* Smooth Glassmorphism Overrides */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(16px) saturate(120%);
+            -webkit-backdrop-filter: blur(16px) saturate(120%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Custom style override for the Google button to fit the premium look */
+        .google-auth-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            color: #f8fafc;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .google-auth-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .google-auth-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            background: radial-gradient(transparent 25%),
+                        conic-gradient(#ea4335 0 25%, #fbbc05 25% 50%, #34a853 50% 75%, #347ef4 75% 100%);
+            box-shadow: inset 0 0 0 3px rgba(255,255,255,.92);
+            flex: 0 0 auto;
+        }
+
+        .google-auth-mark::after {
+            content: 'G';
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1;
+            color: #fff;
+            transform: translateY(-0.5px);
+        }
+
+        /* Form transition states */
+        .form-panel {
+            transition: opacity 500ms cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 500ms cubic-bezier(0.4, 0, 0.2, 1),
+                        filter 500ms cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: opacity, transform, filter;
+        }
+
+        .panel-visible {
+            opacity: 1;
+            transform: translateY(0) scale(1) !important;
+            filter: blur(0);
+            pointer-events: auto;
+        }
+
+        .panel-pre-enter,
+        .panel-exit-down {
+            opacity: 0;
+            transform: translateY(24px) scale(.98) !important;
+            filter: blur(4px);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="overflow-y-auto min-h-screen flex items-center justify-center py-6">
+
+    <section class="min-h-screen w-full flex items-center justify-center p-4 relative z-10 my-auto">
+        <div class="container max-w-5xl flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-12 w-full">
+            
+            <div class="text-center lg:text-center flex flex-col items-center lg:items-center max-w-md text-white">
+                <div class="relative mb-6">
+                    <div class="absolute inset-0 bg-sky-400/20 blur-2xl rounded-full"></div>
+                    <img src="{% static 'img/logo.png' %}" alt="Hangarin Logo" class="relative w-14 h-14 lg:w-24 lg:h-24 rounded-full object-cover shadow-xl border border-white/20">
+                </div>
+                <h1 class="text-white text-2xl lg:text-6xl font-black tracking-tight drop-shadow-md">
+                    Hangarin
+                </h1>
+                <p class="mt-4 text-slate-300 text-[14px] lg:text-base leading-relaxed font-medium">
+                    A beautiful, structured Task &amp; To-Do Manager meticulously built with Django.
+                </p>
+            </div>
+
+            <div class="relative w-full max-w-[460px] h-[660px]">
+                <div id="authFormShell" class="relative w-full h-full overflow-hidden rounded-3xl shadow-2xl glass-card">
+                    
+                    <div id="loginFormWrapper" class="form-panel panel-visible absolute inset-0 w-full h-full py-10 px-6 md:px-10 flex flex-col justify-between z-20">
+                        <div class="space-y-6">
+                            <div>
+                                <h2 class="text-white text-2xl md:text-3xl font-bold tracking-tight text-center">Welcome back</h2>
+                                <p class="text-slate-400 text-xs md:text-sm text-center mt-1">Sign in to manage your day</p>
+                            </div>
+
+                            <div>
+                                <a href="{% provider_login_url 'google' %}" class="google-auth-btn">
+                                    <span class="google-auth-mark" aria-hidden="true"></span>
+                                    <span>Continue with Google</span>
+                                </a>
+                            </div>
+
+                            <div class="relative flex items-center justify-center text-xs">
+                                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-white/10"></div></div>
+                                <span class="relative px-3 bg-transparent text-slate-400 font-medium">or email credentials</span>
+                            </div>
+
+                            <form method="post" action="{% url 'account_login' %}" class="space-y-4">
+                                {% csrf_token %}
+                                <div>
+                                    <label for="id_login" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Email or Username</label>
+                                    <input id="id_login" name="login" type="text" required
+                                           class="block w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-accentColor focus:bg-white/10 focus:ring-4 focus:ring-accentColor/10 outline-none transition"
+                                           placeholder="your.email@psu.edu.ph" />
+                                </div>
+
+                                <div>
+                                    <label for="id_password" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
+                                    <div class="relative">
+                                        <input id="id_password" name="password" type="password" required
+                                               class="block w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-11 text-sm text-white placeholder-slate-500 focus:border-accentColor focus:bg-white/10 focus:ring-4 focus:ring-accentColor/10 outline-none transition"
+                                               placeholder="••••••••" />
+                                        <button type="button" onclick="togglePasswordVisibility('id_password', 'loginEyeIcon')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition">
+                                            <svg id="loginEyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between text-xs pt-1">
+                                    <label class="inline-flex items-center gap-2 text-slate-300 cursor-pointer select-none">
+                                        <input id="loginCheck" type="checkbox" class="h-4 w-4 rounded border-white/10 bg-white/5 text-accentColor focus:ring-offset-0 focus:ring-transparent" checked>
+                                        <span>Remember me</span>
+                                    </label>
+                                    <a href="{% url 'account_reset_password' %}" class="text-accentColor hover:text-accentHover hover:underline">Forgot password?</a>
+                                </div>
+
+                                {% if form.non_field_errors and request.path == '/accounts/login/' %}
+                                    <div class="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-xs text-red-300">
+                                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+
+                                <button type="submit" class="w-full mt-2 flex justify-center items-center rounded-xl bg-accentColor text-slate-950 text-sm font-bold py-3 shadow-lg hover:bg-accentHover hover:shadow-accentColor/20 transition duration-200">
+                                    <span>Sign In</span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="border-t border-white/10 pt-6 text-center">
+                            <p class="text-xs text-slate-400">Don't have an account? 
+                                <button type="button" id="showSignupBtn" class="text-accentColor font-semibold hover:underline ml-1">Create account</button>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div id="signupFormWrapper" class="form-panel panel-pre-enter absolute inset-0 w-full h-full py-8 px-6 md:px-10 flex flex-col justify-between overflow-y-auto z-30">
+                        <div class="space-y-4 w-full">
+                            <div>
+                                <h2 class="text-white text-2xl md:text-3xl font-bold tracking-tight text-center">Get started</h2>
+                                <p class="text-slate-400 text-xs md:text-sm text-center mt-1">Create your master profile</p>
+                            </div>
+
+                            {% if form.errors or form.non_field_errors %}
+                                <div class="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs text-red-300 space-y-1">
+                                    {% for error in form.non_field_errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                            <p><strong>{{ field.label }}:</strong> {{ error }}</p>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            <form method="post" action="{% url 'account_signup' %}" class="space-y-3.5 w-full">
+                                {% csrf_token %}
+                                <div class="space-y-3 w-full">
+                                    <div>
+                                        <label for="signupUsername" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Username *</label>
+                                        <input id="signupUsername" name="username" type="text" required value="{{ form.username.value|default:'' }}"
+                                               class="block w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-accentColor focus:bg-white/10 focus:ring-4 focus:ring-accentColor/10 outline-none transition"
+                                               placeholder="your.username" />
+                                    </div>
+                                    <div>
+                                        <label for="signupEmail" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Email Address *</label>
+                                        <input id="signupEmail" name="email" type="email" required value="{{ form.email.value|default:'' }}"
+                                               class="block w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-accentColor focus:bg-white/10 focus:ring-4 focus:ring-accentColor/10 outline-none transition"
+                                               placeholder="your.email@psu.edu.ph" />
+                                    </div>
+                                    <div>
+                                        <label for="signupPassword" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Password *</label>
+                                        <div class="relative">
+                                            <input id="signupPassword" name="password1" type="password" required
+                                                   class="block w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 pr-11 text-sm text-white placeholder-slate-500 focus:border-accentColor focus:bg-white/10 focus:ring-4 focus:ring-accentColor/10 outline-none transition"
+                                                   placeholder="••••••••" />
+                                            <button type="button" onclick="togglePasswordVisibility('signupPassword', 'signupEyeIcon')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition">
+                                                <svg id="signupEyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="signupConfirmPassword" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Confirm Password *</label>
+                                        <div class="relative">
+                                            <input id="signupConfirmPassword" name="password2" type="password" required
+                                                   class="block w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 pr-11 text-sm text-white placeholder-slate-500 focus:border-accentColor focus:bg-white/10 focus:ring-4 focus:ring-accentColor/10 outline-none transition"
+                                                   placeholder="••••••••" />
+                                            <button type="button" onclick="togglePasswordVisibility('signupConfirmPassword', 'signupConfirmEyeIcon')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition">
+                                                <svg id="signupConfirmEyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start text-[11px] text-slate-300 gap-2.5 pt-0.5">
+                                    <input id="terms" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-white/10 bg-white/5 text-accentColor focus:ring-0 focus:ring-offset-0" checked required>
+                                    <span class="leading-tight">I understand and agree to the platform Terms of Service & Privacy Policy.</span>
+                                </div>
+
+                                <button type="submit" class="w-full flex justify-center items-center rounded-xl bg-accentColor text-slate-950 text-sm font-bold py-3 shadow-lg hover:bg-accentHover hover:shadow-accentColor/20 transition duration-200">
+                                    <span>Sign Up</span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="border-t border-white/10 pt-3 text-center">
+                            <p class="text-xs text-slate-400">Already have an account? 
+                                <button type="button" id="showLoginBtn" class="text-accentColor font-semibold hover:underline ml-1">Back to Login</button>
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <script>
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (!input || !icon) return;
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />';
+            } else {
+                input.type = 'password';
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />';
+            }
+        }
+
+        const loginFormWrapper = document.getElementById('loginFormWrapper');
+        const signupFormWrapper = document.getElementById('signupFormWrapper');
+        const showSignupBtn = document.getElementById('showSignupBtn');
+        const showLoginBtn = document.getElementById('showLoginBtn');
+
+        const transitionMs = 500;
+        const revealDelayMs = 80;
+        let isAnimating = false;
+
+        function showSignupForm(instant = false) {
+            if (!signupFormWrapper || !loginFormWrapper) return;
+            if (!instant && (isAnimating || signupFormWrapper.classList.contains('panel-visible'))) return;
+
+            if (instant) {
+                loginFormWrapper.classList.remove('panel-visible');
+                loginFormWrapper.classList.add('panel-exit-down');
+                signupFormWrapper.classList.remove('panel-pre-enter', 'panel-exit-down');
+                signupFormWrapper.classList.add('panel-visible');
+                return;
+            }
+
+            isAnimating = true;
+            loginFormWrapper.classList.remove('panel-visible');
+            loginFormWrapper.classList.add('panel-exit-down');
+
+            signupFormWrapper.classList.remove('panel-visible', 'panel-exit-down');
+            signupFormWrapper.classList.add('panel-pre-enter');
+            
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    signupFormWrapper.classList.remove('panel-pre-enter');
+                    signupFormWrapper.classList.add('panel-visible');
+                }, revealDelayMs);
+            });
+
+            setTimeout(() => { isAnimating = false; }, transitionMs + revealDelayMs);
+        }
+
+        function showLoginForm() {
+            if (!signupFormWrapper || !loginFormWrapper) return;
+            if (isAnimating || loginFormWrapper.classList.contains('panel-visible')) return;
+
+            isAnimating = true;
+            signupFormWrapper.classList.remove('panel-visible');
+            signupFormWrapper.classList.add('panel-exit-down');
+
+            loginFormWrapper.classList.remove('panel-visible', 'panel-exit-down');
+            loginFormWrapper.classList.add('panel-pre-enter');
+            
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    loginFormWrapper.classList.remove('panel-pre-enter');
+                    loginFormWrapper.classList.add('panel-visible');
+                }, revealDelayMs);
+            });
+
+            setTimeout(() => { isAnimating = false; }, transitionMs + revealDelayMs);
+        }
+
+        if (showSignupBtn) showSignupBtn.addEventListener('click', () => showSignupForm(false));
+        if (showLoginBtn) showLoginBtn.addEventListener('click', showLoginForm);
+
+        /* INAYOS: Auto-detect kung galing sa /signup/ url o may error banner para hindi bumalik sa login wrapper */
+        window.addEventListener('DOMContentLoaded', function () {
+            if (window.location.hash === '#signup' || window.location.pathname.includes('/signup/')) {
+                showSignupForm(true);
+            }
+        });
+    </script>
+</body>
+</html>
